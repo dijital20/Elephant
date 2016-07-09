@@ -8,11 +8,11 @@ log = logging.getLogger('Elephant')
 log.setLevel(logging.DEBUG)
 fmt = logging.Formatter('%(asctime)s %(levelname)s %(message)s')
 # File handler
-# fle = logging.FileHandler('Elephant.log')
-# fle.setLevel(logging.DEBUG)
-# fle.setFormatter(fmt)
-# if fle not in log.handlers:
-#     log.addHandler(fle)
+fle = logging.FileHandler('Elephant.log')
+fle.setLevel(logging.DEBUG)
+fle.setFormatter(fmt)
+if fle not in log.handlers:
+    log.addHandler(fle)
 # Console handler
 cns = logging.StreamHandler()
 cns.setLevel(logging.DEBUG)
