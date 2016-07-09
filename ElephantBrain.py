@@ -154,7 +154,7 @@ class ElephantBrain(object):
         Prepares an ElephantBrain for use.
 
         Args:
-            file_path (basestring): Path to the database file.
+            file_path (str): Path to the database file.
             new (bool): True if you want to create a new file (this will
                 overwrite existing files) or False if you intend to open an
                 existing file.
@@ -197,7 +197,7 @@ class ElephantBrain(object):
         """
         Information about the current ElephantBrain instance.
 
-        Returns (basestring):
+        Returns (str):
         A string containing information on how many items are in each table,
         and the database's metadata.
         """
@@ -278,7 +278,7 @@ class ElephantBrain(object):
         Add a row to a database table.
 
         Args:
-            table (basestring): The name of the table to add data to.
+            table (str): The name of the table to add data to.
             fields (list, tuple): The list of fields present in the data. The
                 index of a field should match the index of its data in values.
             values (list, tuple): The list of values present int he data. The
@@ -299,8 +299,8 @@ class ElephantBrain(object):
         Add rows to the database from a CSV file of data.
 
         Args:
-            table (basestring): The name of the table to add data to.
-            csv_file (basestring): The path to the CSV file containing the data.
+            table (str): The name of the table to add data to.
+            csv_file (str): The path to the CSV file containing the data.
             field_map (dict, None): A dictionary mapping database fields
                 (key) to CSV fields (value). If this parameter is specified,
                 ONLY the fields specified in the dictionary will be added. If
@@ -353,15 +353,15 @@ class ElephantBrain(object):
         SQL string).
 
         Args:
-            tables (basestring, list, tuple): Table or collection of tables.
-            fields (basestring, list, tuple, None): Field or collection of
+            tables (str, list, tuple): Table or collection of tables.
+            fields (str, list, tuple, None): Field or collection of
                 fields. If None is specified, uses *. If you are using multiple
                 tables, be sure to prepend the field name with the table name
                 (foo.bar for 'bar' from the 'foo' table). Also, if you are
                 using mutliple fields with the same name from different tables,
                 use the AS keyword and assign a unique alias, or the values
                 will overwrite themselves in the output.
-            where (basestring, list, tuple, None): If you have criteria for
+            where (str, list, tuple, None): If you have criteria for
                 the WHERE clause in the SQL, add it here. Useful for joining
                 tables. For example, if you want to join tables foo and bar by
                 their id and foo fields respectively, you'd add:
@@ -393,7 +393,7 @@ class ElephantBrain(object):
         Send a raw query to the database. add(), get() and others use this.
 
         Args:
-            qry (basestring): SQL Query string.
+            qry (str): SQL Query string.
             fetchall (bool): Fetch and return all rows? Defaults to False.
 
         Returns (sqlite3.Cursor, list):
