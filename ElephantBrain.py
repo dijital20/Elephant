@@ -22,11 +22,36 @@ if cns not in log.handlers:
 
 
 def dict_factory(cur, row):
+    """
+    Dictionary factor for sqlite3. Converts Row objects to dictionaries.
+
+    Args:
+        cur (sqlite3.Cursor): Cursor object
+        row (sqlite3.Row): Current Row object.
+
+    Returns (dict):
+    Dictionary of the current row's values with the field name as the key.
+    """
     return dict([(c[0], row[i]) for i, c in enumerate(cur.description)])
 
 
 class ElephantBrain(object):
+    """
+    ElephantBrain is the interface to the database that stores all of your
+    glorious data. This class aims to handle opening and interfacing with the
+    database, and will provide methods for getting data to and from the
+    database.
+    """
     def __init__(self, file_path, new=False):
+        """
+        Prepares an ElephantBrain for use.
+
+        Args:
+            file_path (basestring): Path to the database file.
+            new (bool): True if you want to create a new file (this will
+                overwrite existing files) or False if you intend to open an
+                existing file.
+        """
         self.log = logging.getLogger('Elephant.ElephantBrain')
         self.file_path = os.path.abspath(file_path)
         if new:
@@ -59,6 +84,13 @@ class ElephantBrain(object):
 
     @property
     def info(self):
+        """
+        Information about the current ElephantBrain instance.
+
+        Returns (basestring):
+        A string containing information on how many items are in each table,
+        and the database's metadata.
+        """
         counts = {}
         for table in ['Site', 'Room', 'People', 'Equipment', 'Event',
                       'StaffAssign', 'EquipmentAssign', 'EquipmentAdjust']:
@@ -73,10 +105,22 @@ class ElephantBrain(object):
 
     @property
     def metadata(self):
+        """
+        A dictionary of the ElephantBrain's Metadata table.
+
+        Returns (dict):
+        A dictionary of the metadata from the Metadata table.
+        """
         return dict([(r['Name'], r['Value']) for r in self.get(['Metadata'])])
 
     @property
     def _table_list(self):
+        """
+        List of the tables in the current database.
+
+        Returns (list):
+        List of table names in the current database.
+        """
         return [
             i['name'] for i in
             self.get('sqlite_master', 'name', 'type=\'table\'', fetchall=True)
@@ -84,6 +128,12 @@ class ElephantBrain(object):
             ]
 
     def _make_new_db(self):
+        """
+        Create a new database and set the schema.
+
+        Returns (sqlite3.Connection):
+        The sqlite3 Connection object.
+        """
         self.log.debug('_make_new_db()')
         db = sqlite3.connect(self.file_path)
         cur = db.cursor()
@@ -200,9 +250,24 @@ class ElephantBrain(object):
         return db
 
     def _validate_db(self):
+        # TODO: Implement this.
         pass
 
     def add(self, table, fields, values):
+        """
+        Add a row to a database table.
+
+        Args:
+            table (basestring): The name of the table to add data to.
+            fields (list, tuple): The list of fields present in the data. The
+                index of a field should match the index of its data in values.
+            values (list, tuple): The list of values present int he data. The
+                index of a value should match the index of its field in the
+                fields.
+
+        Returns (sqlite3.Cursor):
+        The Cursor object resulting from the query.
+        """
         self.log.debug('add(): {0}'.format(locals()))
         qry = 'INSERT INTO {0}({1}) VALUES ({2})'.format(
             table, ', '.join(fields), ', '.join([repr(v) for v in values]))
@@ -210,6 +275,26 @@ class ElephantBrain(object):
         return self.query(qry)
 
     def add_csv(self, table, csv_file, field_map=None):
+        """
+        Add rows to the database from a CSV file of data.
+
+        Args:
+            table (basestring): The name of the table to add data to.
+            csv_file (basestring): The path to the CSV file containing the data.
+            field_map (dict, None): A dictionary mapping database fields
+                (key) to CSV fields (value). If this parameter is specified,
+                ONLY the fields specified in the dictionary will be added. If
+                you want a database field to use its corresponding name in the
+                csv, make the value a blank string.
+
+        Returns (None):
+        None. Zip. Nada.
+
+        Raises:
+            TypeError: If field_map is not a dictionary or does not contain
+                all string values.
+            ValueError: If csv_path does not exist or is not a file.
+        """
         self.log.debug('add_csv(): {0}'.format(locals()))
         from csv import DictReader
         csv_file = os.path.abspath(csv_file)
@@ -236,11 +321,37 @@ class ElephantBrain(object):
                 # Add the row values to the database
                 self.log.debug('Adding: {0}'.format(row))
                 self.add(table, row.keys(), row.values())
+        return None
 
     def add_xlsx(self, xlsx_file, field_map=None):
+        # TODO: Implement this
         pass
 
     def get(self, tables, fields=None, where=None, fetchall=False):
+        """
+        Get data from the database (without having to worry about writing a
+        SQL string).
+
+        Args:
+            tables (basestring, list, tuple): Table or collection of tables.
+            fields (basestring, list, tuple, None): Field or collection of
+                fields. If None is specified, uses *. If you are using multiple
+                tables, be sure to prepend the field name with the table name
+                (foo.bar for 'bar' from the 'foo' table). Also, if you are
+                using mutliple fields with the same name from different tables,
+                use the AS keyword and assign a unique alias, or the values
+                will overwrite themselves in the output.
+            where (basestring, list, tuple, None): If you have criteria for
+                the WHERE clause in the SQL, add it here. Useful for joining
+                tables. For example, if you want to join tables foo and bar by
+                their id and foo fields respectively, you'd add:
+                 'bar.foo=foo.id'
+            fetchall (bool): Fetch and return all rows? Defaults to False.
+
+        Returns (sqlite3.Cursor, list):
+        If fetchall is True, will return a list of dictionaries for each row.
+        If fetchall is False, will return a Cursor object.
+        """
         self.log.debug('get(): {0}'.format(locals()))
         # Take string params and turn them into lists.
         if isinstance(tables, basestring):
@@ -258,6 +369,17 @@ class ElephantBrain(object):
         return self.query(qry, fetchall=fetchall)
 
     def query(self, qry, fetchall=False):
+        """
+        Send a raw query to the database. add(), get() and others use this.
+
+        Args:
+            qry (basestring): SQL Query string.
+            fetchall (bool): Fetch and return all rows? Defaults to False.
+
+        Returns (sqlite3.Cursor, list):
+        If fetchall is True, will return a list of dictionaries for each row.
+        If fetchall is False, will return a Cursor object.
+        """
         self.log.debug('query(): {0}'.format(locals()))
         cur = self.db.cursor()
         new_cur = cur.execute(qry)
@@ -267,12 +389,14 @@ if __name__ == '__main__':
     from pprint import pformat
 
     eb = ElephantBrain('test.db', new=True)
+    # Test adding some data to the Metadata
     eb.add('Metadata',
            ['Name', 'Value'],
            ['Name', 'Some Conference 2016'])
     eb.add('Metadata',
            ['Name', 'Value'],
            ['Location', 'Somewhere, Some State'])
+    # Test adding some things to the Equipment table.
     eb.add('Equipment',
            ['Name', 'ShortName'],
            ['Thingy', 'T'])
@@ -281,6 +405,7 @@ if __name__ == '__main__':
            ['Bobber', 'B'])
     eb.add_csv('Equipment', 'ti_eq.csv',
                {'Name': '', 'ShortName': '', 'Description': ''})
+    # Add a site, a room, and a person.
     eb.add('Site',
            ['Name', 'Location'],
            ['Site A', '?'])
@@ -290,6 +415,7 @@ if __name__ == '__main__':
     eb.add('People',
            ['FirstName', 'LastName', 'Type'],
            ['John', 'Doe', 'Instructor'])
+    # Add an event, and then assign equipment to it.
     eb.add('Event',
            ['Name', 'Room', 'Start', 'End', 'Speaker'],
            ['Cool Session #1', 1, '2016-01-01 10:30',
@@ -300,7 +426,9 @@ if __name__ == '__main__':
     eb.add('EquipmentAssign',
            ['Event', 'Piece', 'Quantity'],
            [1, 2, 5])
+    # Print out info.
     print(eb.info)
+    # Get and print the events with their associated details.
     events = eb.get(
         ['Event', 'Room', 'People', 'Site'],
         fields=['Site.Name AS Site',
@@ -315,7 +443,7 @@ if __name__ == '__main__':
                'Event.Speaker=People.id']
     )
     print('\nEvents:\n{0}'.format(pformat(events.fetchall())))
-
+    # Get and print the assignments with their associated details.
     assigns = eb.get(
         ['Event', 'Room', 'Site', 'Equipment', 'EquipmentAssign'],
         fields=['Equipment.Name AS Equipment',
@@ -332,6 +460,6 @@ if __name__ == '__main__':
     )
     print('\nEquipment Assignments:\n{0}'.format(
         pformat(assigns.fetchall())))
-
+    # Print the equipment table
     print('\nEquipment:\n{0}'.format(
         pformat(eb.get('Equipment', fetchall=True))))
