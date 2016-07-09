@@ -1,5 +1,6 @@
 import logging
 import os
+import re
 import sqlite3
 
 
@@ -35,6 +36,10 @@ def dict_factory(cur, row):
     return dict([(c[0], row[i]) for i, c in enumerate(cur.description)])
 
 
+class AddledBrainError(Exception):
+    pass
+
+
 class ElephantBrain(object):
     """
     ElephantBrain is the interface to the database that stores all of your
@@ -42,6 +47,108 @@ class ElephantBrain(object):
     database, and will provide methods for getting data to and from the
     database.
     """
+
+    schema = {
+        'Metadata':
+            '''
+            CREATE TABLE Metadata(
+                Name text primary key not null,
+                Value text
+            );
+            ''',
+        'Site':
+            '''
+            CREATE TABLE Site(
+                id integer primary key autoincrement not null,
+                Name text not null,
+                Location text
+            );
+            ''',
+        'Room':
+            '''
+            CREATE TABLE Room(
+                id integer primary key autoincrement not null,
+                Name text not null,
+                RoomGroup text not null,
+                Capacity integer,
+                Type text,
+                Site integer,
+                foreign key(Site) references Site(id)
+            );
+            ''',
+        'People':
+            '''
+            CREATE TABLE People(
+                id integer primary key autoincrement not null,
+                FirstName text not null,
+                LastName text not null,
+                WorkPhone text,
+                CellPhone text,
+                EMail text,
+                Type text
+            );
+            ''',
+        'Equipment':
+            '''
+            CREATE TABLE Equipment(
+                id integer primary key autoincrement not null,
+                Name text not null,
+                ShortName text not null,
+                Description text,
+                Notes text,
+                RoleRequired text
+            );
+            ''',
+        'Event':
+            '''
+            CREATE TABLE Event(
+                id integer primary key autoincrement not null,
+                Name text not null,
+                Room integer not null,
+                Start datetime not null,
+                End datetime not null,
+                Speaker integer not null,
+                Notes text,
+                foreign key(Room) references Room(id),
+                foreign key(Speaker) references People(id)
+            );
+            ''',
+        'StaffAssign':
+            '''
+            CREATE TABLE StaffAssign(
+                id integer primary key autoincrement not null,
+                Event integer not null,
+                Person integer not null,
+                Role text,
+                foreign key(Event) references Event(id),
+                foreign key(Person) references People(id)
+            );
+            ''',
+        'EquipmentAssign':
+            '''
+            CREATE TABLE EquipmentAssign(
+                id integer primary key autoincrement not null,
+                Event integer not null,
+                Piece integer not null,
+                Quantity integer not null,
+                Notes text,
+                foreign key(Event) references Event(id),
+                foreign key(Piece) references Equipment(id)
+            );
+            ''',
+        'EquipmentAdjust':
+            '''
+            CREATE TABLE EquipmentAdjust(
+                id integer primary key autoincrement not null,
+                Piece integer not null,
+                Site integer not null,
+                Quantity integer not null,
+                foreign key(Piece) references Equipment(id),
+                foreign key(Site) references Site(id)
+            );
+            ''',
+    }
+
     def __init__(self, file_path, new=False):
         """
         Prepares an ElephantBrain for use.
@@ -75,6 +182,9 @@ class ElephantBrain(object):
             except sqlite3.Error as err:
                 self.log.error('Connecting to database {0}'.format(err))
         self.db.row_factory = dict_factory
+        if not self._validate_db():
+            raise AddledBrainError(
+                'The database isn\'t valid. Check logs for details.')
 
     def __del__(self):
         self.db.close()
@@ -114,18 +224,19 @@ class ElephantBrain(object):
         return dict([(r['Name'], r['Value']) for r in self.get(['Metadata'])])
 
     @property
-    def _table_list(self):
+    def _table_dict(self):
         """
         List of the tables in the current database.
 
         Returns (list):
         List of table names in the current database.
         """
-        return [
-            i['name'] for i in
-            self.get('sqlite_master', 'name', 'type=\'table\'', fetchall=True)
+        return dict([
+            (i['name'], i['sql'])
+            for i in self.get('sqlite_master', ['name', 'sql'],
+                              'type=\'table\'', fetchall=True)
             if not i['name'].startswith('sqlite')
-            ]
+            ])
 
     def _make_new_db(self):
         """
@@ -139,119 +250,28 @@ class ElephantBrain(object):
         cur = db.cursor()
         self.log.debug('Setting Foreign Keys to on')
         cur.execute('PRAGMA FOREIGN_KEYS=ON')
-        self.log.debug('Creating Metadata table...')
-        cur.execute(
-            '''
-            CREATE TABLE Metadata(
-                Name text primary key not null,
-                Value text
-            );
-            ''')
-        self.log.debug('Creating Site table...')
-        cur.execute(
-            '''
-            CREATE TABLE Site(
-                id integer primary key autoincrement not null,
-                Name text not null,
-                Location text
-            );
-            ''')
-        self.log.debug('Creating Room table...')
-        cur.execute(
-            '''
-            CREATE TABLE Room(
-                id integer primary key autoincrement not null,
-                Name text not null,
-                RoomGroup text not null,
-                Capacity integer,
-                Type text,
-                Site integer,
-                foreign key(Site) references Site(id)
-            );
-            ''')
-        self.log.debug('Creating People table...')
-        cur.execute(
-            '''
-            CREATE TABLE People(
-                id integer primary key autoincrement not null,
-                FirstName text not null,
-                LastName text not null,
-                WorkPhone text,
-                CellPhone text,
-                EMail text,
-                Type text
-            );
-            ''')
-        self.log.debug('Creating Equipment table...')
-        cur.execute(
-            '''
-            CREATE TABLE Equipment(
-                id integer primary key autoincrement not null,
-                Name text not null,
-                ShortName text not null,
-                Description text,
-                Notes text,
-                RoleRequired text
-            );
-            ''')
-        self.log.debug('Creating Event table...')
-        cur.execute(
-            '''
-            CREATE TABLE Event(
-                id integer primary key autoincrement not null,
-                Name text not null,
-                Room integer not null,
-                Start datetime not null,
-                End datetime not null,
-                Speaker integer not null,
-                Notes text,
-                foreign key(Room) references Room(id),
-                foreign key(Speaker) references People(id)
-            );
-            ''')
-        self.log.debug('Creating StaffAssign table...')
-        cur.execute(
-            '''
-            CREATE TABLE StaffAssign(
-                id integer primary key autoincrement not null,
-                Event integer not null,
-                Person integer not null,
-                Role text,
-                foreign key(Event) references Event(id),
-                foreign key(Person) references People(id)
-            );
-            ''')
-        self.log.debug('Creating EquipmentAssign table...')
-        cur.execute(
-            '''
-            CREATE TABLE EquipmentAssign(
-                id integer primary key autoincrement not null,
-                Event integer not null,
-                Piece integer not null,
-                Quantity integer not null,
-                Notes text,
-                foreign key(Event) references Event(id),
-                foreign key(Piece) references Equipment(id)
-            );
-            ''')
-        self.log.debug('Creating EquipmentAdjust table...')
-        cur.execute(
-            '''
-            CREATE TABLE EquipmentAdjust(
-                id integer primary key autoincrement not null,
-                Piece integer not null,
-                Site integer not null,
-                Quantity integer not null,
-                foreign key(Piece) references Equipment(id),
-                foreign key(Site) references Site(id)
-            );
-            ''')
+        for table in self.schema:
+            self.log.debug('Creating {0} table...'.format(table))
+            cur.execute(self.schema[table])
+        self.log.debug('Committing.')
         db.commit()
         return db
 
     def _validate_db(self):
-        # TODO: Implement this.
-        pass
+        for table in self.schema:
+            if table not in self._table_dict:
+                self.log.error('Table {0} not in database'.format(table))
+                return False
+            db_sql = re.sub(r'[\s]+', ' ', self._table_dict[table]).strip()
+            schema_sql = re.sub(r'[\s]+', ' ', self.schema[table]).strip()[:-1]
+            if schema_sql != db_sql:
+                self.log.error(
+                    'Table {0} sql doesn\'t match schema\n'
+                    '\ndb sql:\n{1}\n'
+                    '\nschema sql:\n{2}\n'.format(
+                        table, db_sql, schema_sql))
+                return False
+        return True
 
     def add(self, table, fields, values):
         """
