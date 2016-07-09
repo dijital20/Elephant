@@ -403,7 +403,7 @@ if __name__ == '__main__':
     eb.add('Equipment',
            ['Name', 'ShortName'],
            ['Bobber', 'B'])
-    eb.add_csv('Equipment', 'ti_eq.csv',
+    eb.add_csv('Equipment', 'eq.csv',
                {'Name': '', 'ShortName': '', 'Description': ''})
     # Add a site, a room, and a person.
     eb.add('Site',
