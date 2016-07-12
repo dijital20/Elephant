@@ -17,7 +17,7 @@ if fle not in log.handlers:
     log.addHandler(fle)
 # Console handler
 cns = logging.StreamHandler()
-cns.setLevel(logging.DEBUG)
+cns.setLevel(logging.ERROR)
 cns.setFormatter(fmt)
 if cns not in log.handlers:
     log.addHandler(cns)
