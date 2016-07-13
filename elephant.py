@@ -76,6 +76,38 @@ class ElephantTrumpet(object):
                   'Please try again.'.format(
                 ', '.join(accepted_vals)))
 
+    def __param_dict(self, params, true_parms=[], false_parms=[]):
+        """
+        Convert a list of parameters into a dictionary.
+
+        Args:
+            params (list): List if entered parameters.
+            true_parms (list): List of parameters that should result in a
+                True value.
+            false_parms (list): List of parameters that should result in a
+                False value.
+
+        Returns (dict):
+        Dictionary of commands with their values. Also contains a special one
+        called args which contain positional arguments.
+        """
+        command_dict = {'args': []}
+        while params:
+            p = params.pop(0)
+            if str(p).startswith('-'):
+                p = p.lstrip('-')
+                if p not in command_dict:
+                    command_dict[p] = []
+                if p in true_parms:
+                    command_dict[p].append(True)
+                elif p in false_parms:
+                    command_dict[p].append(False)
+                else:
+                    command_dict[p].append(params.pop(0))
+            else:
+                command_dict['args'].append(p)
+        return command_dict
+
     def parse_commands(self, commands):
         """
         Parse the list of command strings and call the appropriate command
@@ -128,11 +160,9 @@ class ElephantTrumpet(object):
                   'new: If new is specified, a new file will be created, '
                   'overwriting any existing file.')
             return None
-        db_path = os.path.abspath(parm_list.pop(0))
-        new = False
-        if 'new' in parm_list:
-            new = True
-            parm_list.remove('new')
+        cmds = self.__param_dict(parm_list, true_parms=['new'])
+        db_path = os.path.abspath(cmds['args'][0])
+        new = all(cmds.get('new', [False]))
         if self.brain:
             print('The following file is open: {0}'.format(
                 self.brain.file_path))
