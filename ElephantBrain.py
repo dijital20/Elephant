@@ -3,23 +3,10 @@ import os
 import re
 import sqlite3
 
+import ElephantLog
 
-# Logger and formatter
-log = logging.getLogger('Elephant')
-log.setLevel(logging.DEBUG)
-fmt = logging.Formatter('%(asctime)s %(levelname)s %(message)s')
-# File handler
-fle = logging.FileHandler('Elephant.log')
-fle.setLevel(logging.DEBUG)
-fle.setFormatter(fmt)
-if fle not in log.handlers:
-    log.addHandler(fle)
-# Console handler
-cns = logging.StreamHandler()
-cns.setLevel(logging.ERROR)
-cns.setFormatter(fmt)
-if cns not in log.handlers:
-    log.addHandler(cns)
+
+ElephantLog.init_log()
 
 
 def dict_factory(cur, row):
@@ -232,11 +219,11 @@ class ElephantBrain(object):
         List of table names in the current database.
         """
         return dict([
-            (i['name'], i['sql'])
-            for i in self.get('sqlite_master', ['name', 'sql'],
-                              'type=\'table\'', fetchall=True)
-            if not i['name'].startswith('sqlite')
-            ])
+                        (i['name'], i['sql'])
+                        for i in self.get('sqlite_master', ['name', 'sql'],
+                                          'type=\'table\'', fetchall=True)
+                        if not i['name'].startswith('sqlite')
+                        ])
 
     def _make_new_db(self):
         """
@@ -253,7 +240,6 @@ class ElephantBrain(object):
         for table in self.schema:
             self.log.debug('Creating {0} table...'.format(table))
             cur.execute(self.schema[table])
-        self.log.debug('Committing.')
         db.commit()
         return db
 
@@ -405,10 +391,27 @@ class ElephantBrain(object):
         new_cur = cur.execute(qry)
         return new_cur if not fetchall else new_cur.fetchall()
 
+    def save(self):
+        """
+        Commit all changes to the current database.
+
+        Returns (bool):
+        True if successful, False if not.
+        """
+        self.log.debug('save()')
+        try:
+            self.db.commit()
+            return True
+        except (sqlite3.Error, sqlite3.DatabaseError) as e:
+            self.log.error('Error saving: {0}'.format(e))
+            return False
+
+
 if __name__ == '__main__':
     from pprint import pformat
 
-    eb = ElephantBrain('test.db', new=True)
+    eb = ElephantBrain('test.elephant', new=True)
+    print(eb._validate_db())
     # Test adding some data to the Metadata
     eb.add('Metadata',
            ['Name', 'Value'],
@@ -483,3 +486,8 @@ if __name__ == '__main__':
     # Print the equipment table
     print('\nEquipment:\n{0}'.format(
         pformat(eb.get('Equipment', fetchall=True))))
+    eb.save()
+    del eb
+
+    eb = ElephantBrain('test.elephant')
+    print(eb._validate_db())

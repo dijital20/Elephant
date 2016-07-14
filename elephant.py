@@ -3,26 +3,13 @@ import os
 import shlex
 import sys
 
+import ElephantLog
+
 from ElephantBrain import ElephantBrain, AddledBrainError
 from ElephantTrunk import ElephantTrunk
 
 
-# Logger and formatter
-log = logging.getLogger('Elephant')
-log.setLevel(logging.DEBUG)
-fmt = logging.Formatter('%(asctime)s %(levelname)s %(message)s')
-# File handler
-fle = logging.FileHandler('Elephant.log')
-fle.setLevel(logging.DEBUG)
-fle.setFormatter(fmt)
-if fle not in log.handlers:
-    log.addHandler(fle)
-# Console handler
-cns = logging.StreamHandler()
-cns.setLevel(logging.ERROR)
-cns.setFormatter(fmt)
-if cns not in log.handlers:
-    log.addHandler(cns)
+ElephantLog.init_log()
 
 
 class TrumpetError(Exception):
@@ -106,6 +93,16 @@ class ElephantTrumpet(object):
                     command_dict[p].append(params.pop(0))
             else:
                 command_dict['args'].append(p)
+        for k in command_dict:
+            # Skip args. That should always be a list.
+            if k == 'args':
+                continue
+            # If there's only one item, delist it.
+            if len(command_dict[k]) == 1:
+                command_dict[k] = command_dict[k][0]
+            # If the list is all booleans, get their all() value.
+            elif all([type(v) is bool for v in command_dict[k]]):
+                command_dict[k] = all(command_dict[k])
         return command_dict
 
     def parse_commands(self, commands):
@@ -150,8 +147,8 @@ class ElephantTrumpet(object):
         Args:
             parm_list (list): List of parameters to use.
         """
-        print('Open: {0}'.format(parm_list))
-        if '--help' in parm_list:
+        cmds = self.__param_dict(parm_list, true_parms=['new'])
+        if cmds.get('help', False):
             print('Open a database for usage.\n'
                   '\n'
                   'Usage: open <path to database> [new]\n'
@@ -160,9 +157,8 @@ class ElephantTrumpet(object):
                   'new: If new is specified, a new file will be created, '
                   'overwriting any existing file.')
             return None
-        cmds = self.__param_dict(parm_list, true_parms=['new'])
         db_path = os.path.abspath(cmds['args'][0])
-        new = all(cmds.get('new', [False]))
+        new = cmds.get('new', False)
         if self.brain:
             print('The following file is open: {0}'.format(
                 self.brain.file_path))
@@ -174,6 +170,7 @@ class ElephantTrumpet(object):
                 print('Leaving file alone then.')
                 return None
         try:
+            print('Opening: {0}, New: {1}'.format(db_path, new))
             self.brain = ElephantBrain(db_path, new=new)
             print('Opened: {0}\n'.format(db_path))
             print(self.brain.info)
@@ -182,6 +179,15 @@ class ElephantTrumpet(object):
         except Exception as e:
             print('ERROR: An unexpected error happened: {0}'.format(e))
 
+    def command_save(self, parm_list):
+        if self.brain:
+            if self.brain.save():
+                print('{0} has been saved.'.format(self.brain))
+            else:
+                print('{0} encountered an error saving.'.format(self.brain))
+        else:
+            print('No file currently opened.')
+
     def command_close(self, parm_list):
         """
         Close the active database.
@@ -189,7 +195,6 @@ class ElephantTrumpet(object):
         Args:
             parm_list (list): The params to pass.
         """
-        print('Close: {0}'.format(parm_list))
         if not self.brain:
             print('No file currently opened.')
         else:
