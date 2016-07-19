@@ -275,6 +275,12 @@ class ElephantBrain(object):
         The Cursor object resulting from the query.
         """
         self.log.debug('add(): {0}'.format(locals()))
+        # Convert strings to lists.
+        if isinstance(fields, basestring):
+            fields = [fields]
+        if isinstance(values, basestring):
+            values = [values]
+        # Build Query string and query
         qry = 'INSERT INTO {0}({1}) VALUES ({2})'.format(
             table, ', '.join(fields), ', '.join([repr(v) for v in values]))
         self.log.debug('{0}'.format(qry))
@@ -367,12 +373,69 @@ class ElephantBrain(object):
         if isinstance(where, basestring):
             where = [where]
         # Build the Query string and query
-        qry = 'SELECT ' + (', '.join(fields) if fields else '*') + \
-              ' FROM ' + ', '.join(tables)
+        qry = 'SELECT {0} FROM {1}'.format(
+            ', '.join(fields) if fields else '*',
+            ', '.join(tables))
         if where:
             qry += ' WHERE ' + ' AND '.join(where)
-        self.log.debug('{0}'.format(qry))
+        self.log.debug(qry)
         return self.query(qry, fetchall=fetchall)
+
+    def update(self, table, fields, values, where):
+        """
+        Perform an update of a row in a table.
+
+        Args:
+            table (str): Table to update.
+            fields (str, list, tuple): The list of fields present in the
+                data. The index of a field should match the index of its data
+                in values.
+            values (str, list, tuple): The list of values present int he
+                data. The index of a value should match the index of its field
+                in the fields.
+            where (str, list, tuple): The list of where conditions used to
+                identify the row to update.
+
+        Returns (sqlite3.Cursor):
+        A Cursor object pointing to the query.
+        """
+        self.log.debug('update(): {0}'.format(locals()))
+        # Convert strings to list.
+        if isinstance(fields, basestring):
+            fields = [fields]
+        if isinstance(values, basestring):
+            values = [values]
+        if isinstance(where, basestring):
+            where = [where]
+        # Build the Query string and query
+        qry = 'UPDATE {0} SET {1} WHERE {2};'.format(
+            table,
+            ','.join(
+                ['{0}=\'{1}\''.format(f, v) for f, v in zip(fields, values)]
+            ),
+            ' AND '.join(where))
+        self.log.debug(qry)
+        return self.query(qry)
+
+    def delete(self, table, where):
+        """
+        Delete a row or rows from a table.
+
+        Args:
+            table (str): Name of the table to delete rows from.
+            where (str, list, tuple): List of the where conditions used to
+                identify the row or rows to be deleted.
+
+        Returns (sqlite3.Cursor):
+        A Cursor object pointing to the query.
+        """
+        self.log.debug('delete(): {0}'.format(locals()))
+        if isinstance(where, basestring):
+            where = [where]
+        # Build the Query string and query
+        qry = 'DELETE FROM {0} WHERE {1};'.format(
+            table, ' AND '.join(where))
+        return self.query(qry)
 
     def query(self, qry, fetchall=False):
         """
@@ -428,6 +491,20 @@ if __name__ == '__main__':
            ['Bobber', 'B'])
     eb.add_csv('Equipment', 'eq.csv',
                {'Name': '', 'ShortName': '', 'Description': ''})
+    # Test Add, Update, and Delete in the equipment table
+    eb.add('Equipment',
+           ['Name', 'ShortName'],
+           ['ThisIsATest', 'TIAT'])
+    print(pformat(eb.get('Equipment', fetchall=True)))
+    eb.update('Equipment',
+              ['Name', 'ShortName'],
+              ['ThatIsATest', 'TIAT'],
+              'Name=\'ThisIsATest\'')
+    print(pformat(eb.get('Equipment', fetchall=True)))
+    eb.delete('Equipment',
+              ['Name=\'ThatIsATest\'',
+               'ShortName=\'TIAT\''])
+    print(pformat(eb.get('Equipment', fetchall=True)))
     # Add a site, a room, and a person.
     eb.add('Site',
            ['Name', 'Location'],

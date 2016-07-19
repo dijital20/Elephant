@@ -135,8 +135,7 @@ class ElephantTrumpet(object):
         """
         print('Type \'<Command> --help\' for more information on using a '
               'specific command.\n'
-              'Commands available: {0}\n'.format(
-            ', '.join(self.commands)))
+              'Commands available: {0}\n'.format(', '.join(self.commands)))
         if self.interactive:
             print('Use \'quit\' to exit interactive mode.')
 
@@ -197,11 +196,47 @@ class ElephantTrumpet(object):
         """
         if not self.brain:
             print('No file currently opened.')
-        else:
-            old_brain = self.brain.file_path
-            del(self.brain)
-            self.brain = None
-            print('Closed: {0}'.format(old_brain))
+            return None
+        old_brain = self.brain.file_path
+        del(self.brain)
+        self.brain = None
+        print('Closed: {0}'.format(old_brain))
+
+    def command_get(self, parm_list):
+        cmds = self.__param_dict(parm_list, true_parms=['new'])
+        if cmds.get('help', False):
+            print('')
+            return None
+        if not self.brain:
+            print('No file currently opened.')
+            return None
+
+    def command_add(self, parm_list):
+        cmds = self.__param_dict(parm_list, true_parms=['new'])
+        if cmds.get('help', False):
+            print('')
+            return None
+        if not self.brain:
+            print('No file currently opened.')
+            return None
+
+    def command_update(self, parm_list):
+        cmds = self.__param_dict(parm_list, true_parms=['new'])
+        if cmds.get('help', False):
+            print('')
+            return None
+        if not self.brain:
+            print('No file currently opened.')
+            return None
+
+    def command_delete(self, parm_list):
+        cmds = self.__param_dict(parm_list, true_parms=['new'])
+        if cmds.get('help', False):
+            print('')
+            return None
+        if not self.brain:
+            print('No file currently opened.')
+            return None
 
     def command_report(self, parm_list):
         """
