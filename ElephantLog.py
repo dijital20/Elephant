@@ -15,6 +15,7 @@ def init_log(log_level='debug', file_level='debug', console_level='warn'):
                  if hasattr(logging, log_level.upper())
                  else logging.DEBUG)
     fmt = logging.Formatter('%(asctime)s %(levelname)s %(message)s')
+
     # File handler
     # Add it if and only if it does not appear to exist.
     if os.path.abspath('Elephant.log') not in \
@@ -27,6 +28,7 @@ def init_log(log_level='debug', file_level='debug', console_level='warn'):
                      else logging.DEBUG)
         fle.setFormatter(fmt)
         log.addHandler(fle)
+
     # Console handler
     # Add it if and only if it does not already appear to exist.
     if 'StreamHandler' not in [h.__class__.__name__ for h in log.handlers]:
@@ -36,4 +38,5 @@ def init_log(log_level='debug', file_level='debug', console_level='warn'):
                      else logging.WARN)
         cns.setFormatter(fmt)
         log.addHandler(cns)
+
     return log
