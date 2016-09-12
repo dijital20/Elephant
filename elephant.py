@@ -60,10 +60,10 @@ class ElephantTrumpet(object):
             if response in accepted_vals:
                 return response
             print('Accepted responses are: {0}\n'
-                  'Please try again.'.format(
-                ', '.join(accepted_vals)))
+                  'Please try again.'.format(', '.join(accepted_vals)))
 
-    def __param_dict(self, params, true_parms=[], false_parms=[]):
+    @staticmethod
+    def __param_dict(params, true_parms=[], false_parms=[]):
         """
         Convert a list of parameters into a dictionary.
 
