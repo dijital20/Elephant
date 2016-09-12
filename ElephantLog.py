@@ -28,6 +28,8 @@ def init_log(log_level='debug', file_level='debug', console_level='warn'):
                      else logging.DEBUG)
         fle.setFormatter(fmt)
         log.addHandler(fle)
+        log.debug('Added file handler for Elephant.log at level {0}'.format(
+            log.getEffectiveLevel()))
 
     # Console handler
     # Add it if and only if it does not already appear to exist.
@@ -38,5 +40,7 @@ def init_log(log_level='debug', file_level='debug', console_level='warn'):
                      else logging.WARN)
         cns.setFormatter(fmt)
         log.addHandler(cns)
+        log.debug('Added console handler at level {0}'.format(
+            log.getEffectiveLevel()))
 
     return log
