@@ -238,6 +238,49 @@ class ElephantTrumpet(object):
             print('No file currently opened.')
             return None
 
+    def command_info(self, parm_list):
+        cmds = self.__param_dict(parm_list)
+        if cmds.get('help', False):
+            print('Gets information on the currently opened file.')
+            return None
+        if not self.brain:
+            print('No file currently opened.')
+            return None
+        print(self.brain.info)
+
+    def command_import(self, parm_list):
+        cmds = self.__param_dict(parm_list)
+        if cmds.get('help', False):
+            print('')
+            return None
+        if not self.brain:
+            print('No file currently opened.')
+            return None
+        if not all([p in cmds for p in ['table', 'file']]) \
+                and all([type(cmds[p]) is str for p in cmds]):
+            print('You must specify both a single table and a single file. '
+                  'Use --help for more details.')
+            return None
+        table = cmds['table']
+        file_path = os.path.abspath(cmds['file'])
+        file_type = os.path.splitext(os.path.basename(file_path))[-1]
+        if cmds['table'] not in ElephantBrain.schema:
+            print('Table \'{0}\' is not a valid table. Valid options are: '
+                  '{1}'.format(cmds['table'], ', '.join(ElephantBrain.schema)))
+            return None
+        if not os.path.isfile(file_path):
+            print('File {0} does not exist.'.format(file_path))
+            return None
+        print('table: {0}\nfile: {1}\ntype: {2}'.format(
+            table, file_path, file_type))
+        if file_type == '.csv':
+            self.brain.add_csv(table, file_path)
+        elif file_type == '.xlsx':
+            self.brain.add_xlsx(table, file_path)
+        else:
+            print('No idea what to do with file type {0}. '
+                  'File should be xlsx or csv.'.format(file_type))
+
     def command_report(self, parm_list):
         """
         Run a report.
