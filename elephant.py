@@ -309,7 +309,11 @@ if __name__ == '__main__':
     trumpet = ElephantTrumpet()
     if len(sys.argv) > 1:
         # Command line mode
-        trumpet.parse_commands(' '.join(sys.argv[1:]))
+        # Open file
+        trumpet.parse_commands('open {0}'.format(sys.argv[1]))
+        print('\nExecuting: {0}\n'.format(' '.join(sys.argv[2:])))
+        # Commands
+        trumpet.parse_commands(' '.join(sys.argv[2:]))
     else:
         # Interactive mode
         trumpet.interactive = True
