@@ -198,7 +198,7 @@ class ElephantTrumpet(object):
             print('No file currently opened.')
             return None
         old_brain = self.brain.file_path
-        del(self.brain)
+        del self.brain
         self.brain = None
         print('Closed: {0}'.format(old_brain))
 
@@ -210,6 +210,20 @@ class ElephantTrumpet(object):
         if not self.brain:
             print('No file currently opened.')
             return None
+        data = self.brain.get(tables=cmds.get('tables'),
+                              fields=cmds.get('fields'),
+                              where=cmds.get('where'),
+                              fetchall=True)
+        if not data:
+            print('No data fits query.')
+            return None
+        line_template = ' | '.join([('{' + str(k) + '}')
+                                    for k in data[0].keys()])
+        # Print the header row
+        print(line_template.replace('{', '').replace('}', ''))
+        # Print the data rows
+        for row in data:
+            print(line_template.format(**row))
 
     def command_add(self, parm_list):
         cmds = self.__param_dict(parm_list, true_parms=['new'])
