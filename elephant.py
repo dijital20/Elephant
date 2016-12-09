@@ -85,8 +85,8 @@ class ElephantTrumpet(object):
                 p = p.lstrip('-')
                 if p not in command_dict:
                     command_dict[p] = []
-                if p in true_parms:
-                    command_dict[p].append(True)
+                if p in true_parms or p == 'help':
+                    command_dict[p].append(True)it
                 elif p in false_parms:
                     command_dict[p].append(False)
                 else:
