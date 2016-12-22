@@ -86,7 +86,7 @@ class ElephantTrumpet(object):
                 if p not in command_dict:
                     command_dict[p] = []
                 if p in true_parms or p == 'help':
-                    command_dict[p].append(True)it
+                    command_dict[p].append(True)
                 elif p in false_parms:
                     command_dict[p].append(False)
                 else:
@@ -115,7 +115,8 @@ class ElephantTrumpet(object):
             commands (str): Command list as a string.
         """
         command_list = shlex.split(commands)
-        # print('Command_list: {0}'.format(command_list))
+        if not command_list:
+            return self.command_help([])
         call_command = command_list.pop(0)
         if call_command in self.commands:
             return getattr(
@@ -205,6 +206,7 @@ class ElephantTrumpet(object):
     def command_get(self, parm_list):
         cmds = self.__param_dict(parm_list, true_parms=['new'])
         if cmds.get('help', False):
+            # TODO: Add help string.
             print('')
             return None
         if not self.brain:
@@ -228,6 +230,7 @@ class ElephantTrumpet(object):
     def command_add(self, parm_list):
         cmds = self.__param_dict(parm_list, true_parms=['new'])
         if cmds.get('help', False):
+            # TODO: Add help string.
             print('')
             return None
         if not self.brain:
@@ -237,6 +240,7 @@ class ElephantTrumpet(object):
     def command_update(self, parm_list):
         cmds = self.__param_dict(parm_list, true_parms=['new'])
         if cmds.get('help', False):
+            # TODO: Add help string.
             print('')
             return None
         if not self.brain:
@@ -246,6 +250,7 @@ class ElephantTrumpet(object):
     def command_delete(self, parm_list):
         cmds = self.__param_dict(parm_list, true_parms=['new'])
         if cmds.get('help', False):
+            # TODO: Add help string.
             print('')
             return None
         if not self.brain:
@@ -265,6 +270,7 @@ class ElephantTrumpet(object):
     def command_import(self, parm_list):
         cmds = self.__param_dict(parm_list)
         if cmds.get('help', False):
+            # TODO: Add help string.
             print('')
             return None
         if not self.brain:
@@ -303,6 +309,7 @@ class ElephantTrumpet(object):
             parm_list (list): The params to pass.
         """
         print('Report: {0}'.format(parm_list))
+        # TODO: Implement me!.
 
 
 if __name__ == '__main__':
